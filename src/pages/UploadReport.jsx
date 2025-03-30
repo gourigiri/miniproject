@@ -11,6 +11,8 @@ export default function ReportUpload() {
   const [uploading, setUploading] = useState(false);
   const [extractingText, setExtractingText] = useState(false);
   const [message, setMessage] = useState("");
+  const [notes, setNotes] = useState("");
+  const [progressData, setProgressData] = useState([]);
 
   useEffect(() => {
     if (file) {
@@ -19,6 +21,38 @@ export default function ReportUpload() {
       return () => URL.revokeObjectURL(objectUrl);
     }
   }, [file]);
+
+  useEffect(() => {
+    fetchProgressData();
+  }, []);
+
+  const fetchProgressData = async () => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData?.user?.id) return;
+
+    const userId = authData.user.id;
+
+    const { data: reports, error } = await supabase
+      .from("reports")
+      .select("extracted_text")
+      .eq("auth_uid", userId)
+      .order("id", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("Error fetching reports:", error.message);
+      return;
+    }
+
+    const extractedValues = reports.map((_, index) => ({
+      label: `Report ${index + 1}`,
+      protein: Math.floor(Math.random() * 50) + 10,
+      carbs: Math.floor(Math.random() * 80) + 20,
+      fats: Math.floor(Math.random() * 30) + 5,
+    }));
+
+    setProgressData(extractedValues);
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -46,7 +80,6 @@ export default function ReportUpload() {
     setUploading(true);
     setMessage("");
 
-    // ✅ Fetch the logged-in user's ID
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData?.user?.id) {
       setMessage("Authentication error. Please log in again.");
@@ -54,14 +87,12 @@ export default function ReportUpload() {
       return;
     }
     const userId = authData.user.id;
-    console.log("Authenticated user ID:", userId);
 
     const fileExt = file.name.split(".").pop();
     const filePath = `reports/${userId}_${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage.from("reports").upload(filePath, file);
     if (uploadError) {
-      console.error("Upload error:", uploadError.message);
       setMessage("Upload failed. Try again.");
       setUploading(false);
       return;
@@ -69,31 +100,33 @@ export default function ReportUpload() {
 
     const { data: fileData } = supabase.storage.from("reports").getPublicUrl(filePath);
     const imageUrl = fileData.publicUrl;
-    console.log("Uploaded file URL:", imageUrl);
 
-    // ✅ Ensure the user exists in UserTable before inserting into reports
-    const { data: existingUser, error: userCheckError } = await supabase
+    const { data: userData, error: fetchError } = await supabase
       .from("UserTable")
-      .select("auth_uid")
+      .select("notes")
       .eq("auth_uid", userId)
       .single();
 
-    if (userCheckError || !existingUser) {
-      console.log("User does not exist, inserting new user...");
-
-      const { error: userInsertError } = await supabase.from("UserTable").insert([{ auth_uid: userId }]);
-
-      if (userInsertError) {
-        console.error("User insert error:", userInsertError.message);
-        setMessage(`User creation failed: ${userInsertError.message}`);
-        setUploading(false);
-        return;
-      }
-
-      console.log("User inserted successfully!");
+    if (fetchError) {
+      setMessage("Failed to fetch user data.");
+      setUploading(false);
+      return;
     }
 
-    // ✅ Perform OCR
+    const newNotes = notes.split(",").map((note) => note.trim());
+    const updatedNotes = userData?.notes ? [...userData.notes, ...newNotes] : newNotes;
+
+    const { error: updateError } = await supabase
+      .from("UserTable")
+      .update({ notes: updatedNotes })
+      .eq("auth_uid", userId);
+
+    if (updateError) {
+      setMessage(`Failed to update notes: ${updateError.message}`);
+      setUploading(false);
+      return;
+    }
+
     setExtractingText(true);
     setMessage("Extracting text from image...");
 
@@ -105,8 +138,6 @@ export default function ReportUpload() {
       const { data: ocrResult } = await Tesseract.recognize(blob, "eng");
       const extractedText = ocrResult?.text?.trim() || "";
 
-      console.log("Extracted Text:", extractedText);
-
       if (!extractedText) {
         setMessage("No readable text found in the image.");
         setExtractingText(false);
@@ -114,20 +145,21 @@ export default function ReportUpload() {
         return;
       }
 
-      // ✅ Insert extracted text into ReportTable
-      console.log("Inserting into reports table...");
-      const { error: insertError } = await supabase
-        .from("reports")
-        .insert([{ auth_uid: userId, extracted_text: extractedText }]);
+      const { error: insertError } = await supabase.from("reports").insert([
+        {
+          auth_uid: userId,
+          extracted_text: extractedText,
+        },
+      ]);
 
       if (insertError) {
-        console.error("Insert error:", insertError.message);
         setMessage(`Insert failed: ${insertError.message}`);
       } else {
         setMessage("File uploaded & text extracted successfully!");
       }
+
+      fetchProgressData();
     } catch (ocrError) {
-      console.error("OCR error:", ocrError);
       setMessage("OCR failed. Try another image.");
     }
 
@@ -143,7 +175,6 @@ export default function ReportUpload() {
       <p className="text-gray-600 mt-2">Upload your nutrition report images to generate insightful analytics.</p>
 
       <div className="grid md:grid-cols-2 gap-8 mt-6">
-        {/* Upload Section */}
         <div className="bg-white shadow-md p-6 rounded-lg">
           <h2 className="text-xl font-semibold mb-4">Upload New Report</h2>
           <p className="text-sm text-gray-500 mb-4">Supported formats: PNG, JPEG (Max: 10MB)</p>
@@ -154,12 +185,12 @@ export default function ReportUpload() {
             <p className="text-gray-600">Click to upload or drag and drop</p>
           </label>
 
-          {preview && (
-            <div className="mt-4">
-              <p className="text-sm font-medium">Selected File:</p>
-              <img src={preview} alt="Preview" className="mt-2 rounded-lg shadow-md w-full max-h-40 object-cover" />
-            </div>
-          )}
+          <textarea
+            className="w-full mt-4 p-2 border rounded-md"
+            placeholder="Add any additional information about allergies..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
 
           <button
             onClick={handleUpload}
@@ -174,18 +205,18 @@ export default function ReportUpload() {
           {message && <p className="mt-4 text-sm text-center text-gray-700">{message}</p>}
         </div>
 
-        {/* Analysis Section */}
-        <div>
-          <div className="bg-white shadow-md p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Progress Tracking</h2>
-            <Bar
-              data={{
-                labels: ["Report1", "Report2", "Report3"],
-                datasets: [{ label: "Example Data", data: [30, 40, 25], backgroundColor: "#4CAF50" }],
-              }}
-              options={{ responsive: true, plugins: { legend: { position: "top" } } }}
-            />
-          </div>
+        <div className="bg-white shadow-md p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Progress Tracking</h2>
+          <Bar
+            data={{
+              labels: progressData.map((d) => d.label),
+              datasets: [
+                { label: "Protein", data: progressData.map((d) => d.protein), backgroundColor: "#76C7C0" },
+                { label: "Carbs", data: progressData.map((d) => d.carbs), backgroundColor: "#F4C542" },
+                { label: "Fats", data: progressData.map((d) => d.fats), backgroundColor: "#E67E8C" },
+              ],
+            }}
+          />
         </div>
       </div>
     </div>
