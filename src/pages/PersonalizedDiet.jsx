@@ -3,26 +3,20 @@ import { useRef } from "react";
 
 const meals = {
   Breakfast: [
-    { name: "Protein Smoothie", img: "breakfast1.jpg", calories: 350, time: "5 min" },
-    { name: "Oatmeal with Almond Butter", img: "breakfast2.jpg", calories: 320, time: "8 min" },
-    { name: "Scrambled Eggs & Avocado", img: "breakfast3.jpg", calories: 300, time: "10 min" },
-    { name: "Chia Seed Pudding", img: "breakfast4.jpg", calories: 280, time: "12 min" },
-    { name: "Greek Yogurt & Nuts", img: "breakfast5.jpg", calories: 310, time: "7 min" }
+    { name: "Avocado Toast with Poached Eggs", img: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXZhY2FkbyUyMHRvYXN0JTIwd2l0aCUyMGVnZ3xlbnwwfHwwfHx8MA%3D%3D", calories: 380, time: "15 min" },
+    { name: "Greek Yogurt Bowl", img: "https://images.unsplash.com/photo-1627308595228-9d0497edbe74?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHlvZ3VydCUyMGJvd2x8ZW58MHx8MHx8fDA%3D", calories: 290, time: "5 min" },
+    { name: "Overnight Oats", img: "https://images.unsplash.com/photo-1583687463124-ff2aa00b1160?q=80&w=987&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", calories: 340, time: "8 min" },
   ],
   Lunch: [
-    { name: "Grilled Chicken Salad", img: "lunch1.jpg", calories: 400, time: "20 min" },
-    { name: "Brown Rice & Salmon", img: "lunch2.jpg", calories: 450, time: "25 min" },
-    { name: "Lentil Soup & Whole Grain Bread", img: "lunch3.jpg", calories: 380, time: "30 min" },
-    { name: "Quinoa & Tofu Bowl", img: "lunch4.jpg", calories: 410, time: "18 min" },
-    { name: "Vegetable Stir-Fry", img: "lunch5.jpg", calories: 390, time: "15 min" }
+    { name: "Quinoa Buddha Bowl", img: "https://images.unsplash.com/photo-1562923690-e274ba919781?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cXVpbm9hfGVufDB8fDB8fHww", calories: 420, time: "20 min" },
+    { name: "Mediterranean Salad", img: "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fG1lZGl0ZXJyYW5lbiUyMHNhbGFkfGVufDB8fDB8fHww", calories: 380, time: "15 min" },
+    { name: "Grilled Chicken Wrap", img: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hpY2tlbiUyMHdyYXB8ZW58MHx8MHx8fDA%3D", calories: 450, time: "25 min" },
   ],
   Dinner: [
-    { name: "Baked Cod & Vegetables", img: "dinner1.jpg", calories: 500, time: "35 min" },
-    { name: "Zucchini Noodles & Pesto", img: "dinner2.jpg", calories: 370, time: "25 min" },
-    { name: "Stuffed Bell Peppers", img: "dinner3.jpg", calories: 420, time: "30 min" },
-    { name: "Chickpea Stir-Fry", img: "dinner4.jpg", calories: 390, time: "20 min" },
-    { name: "Grilled Tofu & Quinoa", img: "dinner5.jpg", calories: 410, time: "28 min" }
-  ]
+    { name: "Salmon with Roasted Vegetables", img: "https://images.unsplash.com/photo-1593819559713-743d364eb059?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8dGVyaXlha2l8ZW58MHx8MHx8fDA%3D", calories: 520, time: "30 min" },
+    { name: "Vegetarian Stir-Fry", img: "https://images.unsplash.com/photo-1626451542138-1f86835340ec?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8dmVnZXRhYmxlJTIwYm93bHxlbnwwfHwwfHx8MA%3D%3D", calories: 380, time: "25 min" },
+    { name: "Grilled Steak with Sweet Potato", img: "https://images.unsplash.com/photo-1623765306406-b8bad9a7644c?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Z3JpbGxlZCUyMHN0ZWFrJTIwd2l0aCUyMHBvdGF0b3xlbnwwfHwwfHx8MA%3D%3D", calories: 580, time: "35 min" },
+  ],
 };
 
 export default function PersonalizedDiet() {
