@@ -1,97 +1,138 @@
+import { useEffect, useState, useRef } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { useRef } from "react";
+import { supabase } from "../supabaseClient"; // Adjust path if needed
 
-const meals = {
-  Breakfast: [
-    { name: "Avocado Toast with Poached Eggs", img: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXZhY2FkbyUyMHRvYXN0JTIwd2l0aCUyMGVnZ3xlbnwwfHwwfHx8MA%3D%3D", calories: 380, time: "15 min" },
-    { name: "Greek Yogurt Bowl", img: "https://images.unsplash.com/photo-1627308595228-9d0497edbe74?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHlvZ3VydCUyMGJvd2x8ZW58MHx8MHx8fDA%3D", calories: 290, time: "5 min" },
-    { name: "Overnight Oats", img: "https://images.unsplash.com/photo-1583687463124-ff2aa00b1160?q=80&w=987&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", calories: 340, time: "8 min" },
-  ],
-  Lunch: [
-    { name: "Quinoa Buddha Bowl", img: "https://images.unsplash.com/photo-1562923690-e274ba919781?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cXVpbm9hfGVufDB8fDB8fHww", calories: 420, time: "20 min" },
-    { name: "Mediterranean Salad", img: "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fG1lZGl0ZXJyYW5lbiUyMHNhbGFkfGVufDB8fDB8fHww", calories: 380, time: "15 min" },
-    { name: "Grilled Chicken Wrap", img: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hpY2tlbiUyMHdyYXB8ZW58MHx8MHx8fDA%3D", calories: 450, time: "25 min" },
-  ],
-  Dinner: [
-    { name: "Salmon with Roasted Vegetables", img: "https://images.unsplash.com/photo-1593819559713-743d364eb059?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8dGVyaXlha2l8ZW58MHx8MHx8fDA%3D", calories: 520, time: "30 min" },
-    { name: "Vegetarian Stir-Fry", img: "https://images.unsplash.com/photo-1626451542138-1f86835340ec?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8dmVnZXRhYmxlJTIwYm93bHxlbnwwfHwwfHx8MA%3D%3D", calories: 380, time: "25 min" },
-    { name: "Grilled Steak with Sweet Potato", img: "https://images.unsplash.com/photo-1623765306406-b8bad9a7644c?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Z3JpbGxlZCUyMHN0ZWFrJTIwd2l0aCUyMHBvdGF0b3xlbnwwfHwwfHx8MA%3D%3D", calories: 580, time: "35 min" },
-  ],
-};
+const UserMeals = () => {
+  const [meals, setMeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const mealRefs = {
+    breakfast: useRef(null),
+    lunch: useRef(null),
+    dinner: useRef(null),
+  };
 
-export default function StandardDiet() {
+  useEffect(() => {
+    const fetchMeals = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        setError("User not logged in");
+        setLoading(false);
+        return;
+      }
+
+      const userId = userData.user.id;
+
+      const { data: mealData, error: mealError } = await supabase
+        .from("standard_recommendation")
+        .select("*")
+        .eq("user_id", userId)
+        .order("meal_type", { ascending: true });
+
+      if (mealError) {
+        setError(mealError.message);
+      } else {
+        setMeals(mealData);
+      }
+
+      setLoading(false);
+    };
+
+    fetchMeals();
+  }, []);
+
+  if (loading)
+    return <p className="text-center text-lg font-semibold text-gray-600">Loading...</p>;
+
+  if (error)
+    return <p className="text-center text-lg text-red-500">Error: {error}</p>;
+
+  const categorizedMeals = {
+    breakfast: meals.filter((meal) => meal.meal_type.toLowerCase() === "breakfast"),
+    lunch: meals.filter((meal) => meal.meal_type.toLowerCase() === "lunch"),
+    dinner: meals.filter((meal) => meal.meal_type.toLowerCase() === "dinner"),
+  };
+
+  const scrollLeft = (type) => {
+    if (mealRefs[type]?.current) {
+      mealRefs[type].current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = (type) => {
+    if (mealRefs[type]?.current) {
+      mealRefs[type].current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 text-center">
-      {/* Header Section */}
-      <h1 className="text-3xl md:text-4xl font-bold mb-3 text-gray-900 tracking-tight">
-        Balanced Nutrition for Every Meal
-      </h1>
-      <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-6">
-        A curated selection of delicious and healthy meal options to keep you energized and fit.
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 p-6 flex flex-col items-center">
+      {/* Updated Heading and Slim Text */}
+      <h2 className="text-4xl font-bold text-gray-900 text-center mb-4">
+        Your Standard Diet Plan
+      </h2>
+      <p className="text-md text-gray-500 text-center mb-8 max-w-2xl font-light">
+        A structured meal plan designed to provide balanced nutrition for a healthy lifestyle. 
+        Follow these meal recommendations to meet your daily dietary needs.
       </p>
 
-      {/* Display Meal Sections */}
-      {Object.entries(meals).map(([category, mealList]) => (
-        <MealSection key={category} category={category} meals={mealList} />
+      {["breakfast", "lunch", "dinner"].map((type) => (
+        <div key={type} className="w-full max-w-5xl text-center mb-12">
+          <h3 className="text-3xl font-bold text-blue-600 mb-4 capitalize">
+            {type}
+          </h3>
+
+          {/* Scrollable Meal Section */}
+          <div className="relative">
+            {/* Left Scroll Button */}
+            <button
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 p-3 bg-gray-200 rounded-full shadow-md hover:bg-gray-300 transition z-10"
+              onClick={() => scrollLeft(type)}
+            >
+              <FaArrowLeft />
+            </button>
+
+            {/* Meal Cards Container */}
+            <div
+              ref={mealRefs[type]}
+              className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 hide-scrollbar justify-center"
+            >
+              {categorizedMeals[type].map((meal) => (
+                <div
+                  key={meal.id}
+                  className="w-80 min-w-[250px] bg-white shadow-lg rounded-2xl p-5 snap-center border border-gray-200"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {meal.meal_name}
+                  </h3>
+                  <p className="text-gray-600 mt-2">
+                    <span className="font-bold">Ingredients:</span> {meal.meal_ingredients}
+                  </p>
+                  <p className="text-gray-600 mt-2">
+                    <span className="font-bold">Nutritional Info:</span> {meal.nutrition_total}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-4">
+                    Created: {new Date(meal.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Scroll Button */}
+            <button
+              className="absolute right-0 top-1/2 transform -translate-y-1/2 p-3 bg-gray-200 rounded-full shadow-md hover:bg-gray-300 transition z-10"
+              onClick={() => scrollRight(type)}
+            >
+              <FaArrowRight />
+            </button>
+          </div>
+        </div>
       ))}
     </div>
   );
-}
+};
 
-function MealSection({ category, meals }) {
-  const scrollRef = useRef(null);
-
-  const scrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
-    }
-  };
-
-  return (
-    <div className="mb-10">
-      {/* Category Title */}
-      <h2 className="text-xl md:text-2xl font-semibold text-green-700 mb-4">{category}</h2>
-
-      {/* Scrollable Meal Section without Scrollbar */}
-      <div className="relative">
-        <button
-          className="absolute left-0 top-1/2 transform -translate-y-1/2 p-2 bg-gray-200 rounded-full shadow-md hover:bg-gray-300 transition z-10"
-          onClick={scrollLeft}
-        >
-          <FaArrowLeft />
-        </button>
-
-        <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth px-6 hide-scrollbar"
-        >
-          {meals.map((meal, index) => (
-            <div
-              key={index}
-              className="w-56 min-w-[230px] bg-white shadow-md rounded-lg overflow-hidden snap-center"
-            >
-              <img src={meal.img} alt={meal.name} className="w-full h-28 sm:h-36 object-cover" />
-              <div className="p-3">
-                <h3 className="text-sm sm:text-lg font-medium">{meal.name}</h3>
-                <p className="text-gray-500 text-xs sm:text-sm">{meal.calories} cal • {meal.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button
-          className="absolute right-0 top-1/2 transform -translate-y-1/2 p-2 bg-gray-200 rounded-full shadow-md hover:bg-gray-300 transition z-10"
-          onClick={scrollRight}
-        >
-          <FaArrowRight />
-        </button>
-      </div>
-    </div>
-  );
-}
+export default UserMeals;
