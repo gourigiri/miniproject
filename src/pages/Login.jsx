@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../supabaseClient"; // Import Supabase client
 
 const Login = ({ setIsLoggedIn }) => {
     const [email, setEmail] = useState("");
@@ -21,36 +21,33 @@ const Login = ({ setIsLoggedIn }) => {
         }
 
         try {
-            console.log("Attempting user login...");
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+            // ✅ Step 1: Authenticate user with Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
             if (authError) throw new Error(authError.message || "Invalid login credentials.");
 
-            const auth_uid = authData.user?.id; // Using auth_uid
-            if (!auth_uid) throw new Error("Authentication failed. No user ID returned.");
-
-            console.log("User logged in with auth UID:", auth_uid);
-            localStorage.setItem("auth_uid", auth_uid); // Store auth_uid in local storage
-
-            console.log("Fetching user from UserTable...");
+            // ✅ Step 2: Fetch user details from UserTable
             const { data: userData, error: userError } = await supabase
                 .from("UserTable")
                 .select("*")
-                .eq("auth_uid", auth_uid) // Changed from user_id/auth_id to auth_uid
+                .eq("email", email)
                 .single();
 
-            if (userError) {
-                console.error("Error fetching user:", userError.message);
+            if (userError || !userData) {
                 throw new Error("User not found in database.");
             }
 
-            console.log("User data retrieved:", userData);
+            // ✅ Step 3: Store user session & update state
             localStorage.setItem("user", JSON.stringify(userData));
             if (setIsLoggedIn) setIsLoggedIn(true);
 
+            // ✅ Step 4: Redirect to home page
             navigate("/home");
+
         } catch (err) {
-            console.error("Login error:", err.message);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -63,9 +60,29 @@ const Login = ({ setIsLoggedIn }) => {
                 <h2 className="text-2xl font-bold text-center text-gray-800">Login</h2>
                 {error && <p className="text-red-500 text-center mt-2">{error}</p>}
                 <form onSubmit={handleLogin} className="mt-4">
-                    <input type="email" placeholder="Email" className="w-full p-2 border rounded-lg mb-3" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-                    <input type="password" placeholder="Password" className="w-full p-2 border rounded-lg mb-3" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
-                    <button type="submit" className="w-full text-white p-2 rounded-lg bg-blue-500 hover:bg-blue-700" disabled={loading}>
+                    <input 
+                        type="email" 
+                        placeholder="Email" 
+                        className="w-full p-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                    />
+                    <input 
+                        type="password" 
+                        placeholder="Password" 
+                        className="w-full p-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                    />
+                    <button 
+                        type="submit" 
+                        className={`w-full text-white p-2 rounded-lg transition-all ${
+                            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-700"
+                        }`}
+                        disabled={loading}
+                    >
                         {loading ? "Signing In..." : "Sign In"}
                     </button>
                 </form>
